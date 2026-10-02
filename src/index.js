@@ -1,5 +1,8 @@
 import app from "./app.js";
 import { sequelize } from "./database/database.js";
+import { loadInitialUsuarios } from "./database/initUsuarios.js";
+import { loadInitialAlbumes } from "./database/initAlbumes.js";
+import { loadInitialReviews } from "./database/initReviews.js";
 import { setupRelations } from "./models/relations.js";
 import "./models/usuario.js";
 import "./models/album.js";
@@ -13,6 +16,10 @@ async function init() {
     await sequelize.sync({ force: true }); // borra y recrea las tablas en cada arranque (solo desarrollo)
 
     setupRelations();
+
+    await loadInitialUsuarios();
+    await loadInitialAlbumes();
+    await loadInitialReviews();
 
     app.listen(3000, () => console.log("Servidor escuchando en el puerto 3000"));
   } catch (error) {
