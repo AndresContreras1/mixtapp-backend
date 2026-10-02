@@ -186,18 +186,3 @@ src/
 └── index.js      conecta, crea tablas y relaciones, carga los datos y abre el puerto 3000
 ```
 
-## Siguiente paso
-
-Conectar la app Android [Mixtapp](https://github.com/AndresContreras1/Mixtapp) a esta API, para que las
-reseñas y los álbumes dejen de vivir en memoria. Es el trabajo del siguiente sprint.
-
-## Equipo
-
-Proyecto de **Computación Móvil**, Pontificia Universidad Javeriana, sede Bogotá.
-Profesor: Juan Sebastián Angarita Torres.
-
-| Integrante | GitHub |
-|---|---|
-| Andrés Contreras | [@AndresContreras1](https://github.com/AndresContreras1) |
-| Andrés Loreto Quiros | |
-| Laura Aponte | |
