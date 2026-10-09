@@ -45,7 +45,7 @@ export const deleteReview = async (req, res) => {
       return res.status(404).json({ error: "Review no encontrada" });
     }
     await review.destroy();
-    return res.sendStatus(204);
+    return res.json({ message: "Review eliminada" });
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }

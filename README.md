@@ -5,7 +5,8 @@
 Mixtapp Backend es la API de [Mixtapp](https://github.com/AndresContreras1/Mixtapp), la app Android donde
 abres un álbum, le pones una calificación y escribes tu reseña. Expone los usuarios y los álbumes en modo
 lectura y un CRUD completo de reseñas, cada una ligada a un usuario y a un álbum. Está hecha con Node.js,
-Express y Sequelize sobre PostgreSQL, y es la entrega del sprint 8 de Computación Móvil.
+Express y Sequelize sobre PostgreSQL. Es la entrega del sprint 8 de Computación Móvil, ajustada en el sprint 9
+para que la app la consuma con Retrofit.
 
 ![Node.js](https://img.shields.io/badge/Node.js-24-5FA04E?logo=nodedotjs&logoColor=white)
 ![Express 5](https://img.shields.io/badge/Express-5.2-000000?logo=express&logoColor=white)
@@ -23,7 +24,7 @@ Express y Sequelize sobre PostgreSQL, y es la entrega del sprint 8 de Computaci�
 
 [Qué hace](#qué-hace) · [Funcionalidades](#funcionalidades) · [Arquitectura](#arquitectura) ·
 [Cómo ejecutarlo](#cómo-ejecutarlo) · [Endpoints](#endpoints) · [Pruebas con Postman](#pruebas-con-postman) ·
-[Estructura](#estructura) · [Siguiente paso](#siguiente-paso) · [Equipo](#equipo)
+[Consumo desde la app](#consumo-desde-la-app) · [Estructura](#estructura)
 
 ## Qué hace
 
@@ -49,6 +50,7 @@ erDiagram
         int id PK
         int calificacion
         string comentario
+        date fechaEscucha
         int usuarioId FK
         int albumId FK
     }
@@ -64,8 +66,8 @@ foráneas quedan también en PostgreSQL, así que no puede quedar una reseña ap
 |---|---|
 | **Usuarios** | Consulta de un usuario por id, y de sus reseñas con el álbum de cada una. |
 | **Álbumes** | Todos los álbumes, el detalle de uno por id, y sus reseñas con el usuario que escribió cada una. |
-| **Reseñas** | Crear con id de usuario, id de álbum, calificación y comentario; modificar y eliminar por id. |
-| **Datos iniciales** | 5 usuarios, los 8 álbumes de la app con sus portadas y 5 reseñas, cargados al arrancar con `count()` y `bulkCreate`. Los ids de los álbumes coinciden con los de la app. |
+| **Reseñas** | Crear con id de usuario, id de álbum, calificación, comentario y fecha de escucha; modificar y eliminar por id. |
+| **Datos iniciales** | 5 usuarios, los 8 álbumes de la app con sus portadas y 12 reseñas, cargados al arrancar con `count()` y `bulkCreate`. Los 5 usuarios escribieron alguna y todos los álbumes, salvo *Random Access Memories*, tienen al menos una. El usuario 1 es el de la app, con las 4 reseñas de *Mis reseñas*, y los ids de los álbumes coinciden con los de la app. |
 | **Errores** | `404` en JSON cuando el usuario, el álbum o la reseña no existen, y `500` en JSON cuando una consulta falla. |
 
 ## Arquitectura
@@ -73,7 +75,7 @@ foráneas quedan también en PostgreSQL, así que no puede quedar una reseña ap
 ```mermaid
 flowchart LR
     P(["Postman"]) -- "HTTP · JSON" --> R["<b>routes</b><br/>Router de Express"]
-    A(["App Android<br/>siguiente sprint"]) -.-> R
+    A(["App Android<br/>Retrofit"]) -- "HTTP · JSON" --> R
     R --> C["<b>controller</b><br/>async (req, res)"]
     C --> M["<b>models</b><br/>Sequelize"]
     M --> D[("<b>PostgreSQL</b><br/>base mixtapp")]
@@ -131,33 +133,37 @@ Servidor escuchando en el puerto 3000
 | `GET` | `/albumes/:id/reviews` | Las reseñas de un álbum, con el usuario de cada una | `200` · `404` |
 | `POST` | `/reviews` | Crea una reseña | `200` · `404` |
 | `PUT` | `/reviews/:id` | Modifica una reseña | `200` · `404` |
-| `DELETE` | `/reviews/:id` | Elimina una reseña | `204` · `404` |
+| `DELETE` | `/reviews/:id` | Elimina una reseña | `200` · `404` |
 
-Crear una reseña lleva el id del usuario, el id del álbum y la reseña en el body:
+Crear una reseña lleva el id del usuario, el id del álbum y la reseña en el body. `fechaEscucha` es opcional y
+va como fecha `AAAA-MM-DD`:
 
 ```json
 {
-  "usuarioId": 4,
+  "usuarioId": 1,
   "albumId": 6,
   "calificacion": 5,
-  "comentario": "Toxicity sigue sonando igual de potente."
+  "comentario": "Toxicity sigue sonando igual de potente.",
+  "fechaEscucha": "2026-10-08"
 }
 ```
 
 Si el usuario o el álbum no existen, responde `404` con `{ "error": "Usuario no encontrado" }` o
-`{ "error": "Álbum no encontrado" }`. Las reseñas de un álbum traen anidado al usuario que las escribió:
+`{ "error": "Álbum no encontrado" }`. Eliminar responde `{ "message": "Review eliminada" }`. Las reseñas de un
+álbum traen anidado al usuario que las escribió:
 
 ```json
 [
   {
-    "id": 6,
+    "id": 13,
     "calificacion": 5,
     "comentario": "Toxicity sigue sonando igual de potente.",
-    "usuarioId": 4,
+    "fechaEscucha": "2026-10-08",
+    "usuarioId": 1,
     "albumId": 6,
-    "createdAt": "2026-10-02T15:48:09.103Z",
-    "updatedAt": "2026-10-02T15:48:09.103Z",
-    "usuario": { "id": 4, "nombre": "Santiago López", "fotoUrl": null }
+    "createdAt": "2026-10-09T15:24:00.941Z",
+    "updatedAt": "2026-10-09T15:24:00.941Z",
+    "usuario": { "id": 1, "nombre": "Sofía Ramírez", "fotoUrl": null }
   }
 ]
 ```
@@ -169,10 +175,21 @@ body va en *Body → raw → JSON*.
 
 1. `GET /usuarios/1` y `GET /usuarios/999` (`404`).
 2. `GET /albumes`, `GET /albumes/1` y `GET /albumes/999` (`404`).
-3. `POST /reviews` con el body de arriba: crea la reseña con id `6`.
-4. `GET /albumes/6/reviews` y `GET /usuarios/4/reviews`: la reseña aparece en los dos.
-5. `PUT /reviews/6` con `{ "calificacion": 4, "comentario": "Editada" }`.
-6. `DELETE /reviews/6` (`204`), y otra vez para ver el `404`.
+3. `POST /reviews` con el body de arriba: crea la reseña con id `13`.
+4. `GET /albumes/6/reviews` y `GET /usuarios/1/reviews`: la reseña aparece en los dos.
+5. `PUT /reviews/13` con `{ "calificacion": 4, "comentario": "Editada", "fechaEscucha": "2026-10-09" }`.
+6. `DELETE /reviews/13` (`200` con el mensaje), y otra vez para ver el `404`.
+
+## Consumo desde la app
+
+La app Android consume la API con Retrofit desde el emulador:
+
+- La URL base es `http://10.0.2.2:3000/`. Desde el emulador no se llama a `localhost`, como en Postman, sino a
+  esa dirección.
+- Los usuarios del backend no son los de Firebase, así que la app usa siempre el usuario `1` como el usuario
+  autenticado, como permite el enunciado del sprint 9.
+- Eliminar responde un JSON y no un `204` vacío: con el `204` sin cuerpo, Retrofit falla en la app.
+- Los `include` de las reseñas traen el usuario o el álbum anidado, que la app lee en sus DTO.
 
 ## Estructura
 
