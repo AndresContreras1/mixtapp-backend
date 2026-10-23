@@ -2,6 +2,42 @@ import { Review } from "../models/review.js";
 import { Usuario } from "../models/usuario.js";
 import { Album } from "../models/album.js";
 
+export const getReviews = async (req, res) => {
+  try {
+    const reviews = await Review.findAll({
+      include: {
+        model: Usuario,
+        as: "usuario",
+        attributes: ["id", "nombre", "fotoUrl"],
+      },
+      order: [["createdAt", "DESC"]],
+    });
+
+    return res.json(reviews);
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+export const getReviewById = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const review = await Review.findByPk(id, {
+      include: {
+        model: Usuario,
+        as: "usuario",
+        attributes: ["id", "nombre", "fotoUrl"],
+      },
+    });
+    if (!review) {
+      return res.status(404).json({ error: "Review no encontrada" });
+    }
+    return res.json(review);
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
 export const createReview = async (req, res) => {
   try {
     const { usuarioId, albumId } = req.body;

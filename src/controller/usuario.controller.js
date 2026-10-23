@@ -2,6 +2,15 @@ import { Usuario } from "../models/usuario.js";
 import { Review } from "../models/review.js";
 import { Album } from "../models/album.js";
 
+export const getUsuarios = async (req, res) => {
+  try {
+    const usuarios = await Usuario.findAll();
+    return res.json(usuarios);
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
 export const getUsuarioById = async (req, res) => {
   try {
     const id = req.params.id;

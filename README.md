@@ -16,9 +16,10 @@ para que la app la consuma con Retrofit.
 ![Postman](https://img.shields.io/badge/Postman-pruebas-FF6C37?logo=postman&logoColor=white)
 
 > [!NOTE]
-> No hay autenticación: el enunciado del sprint la deja por fuera. Cada arranque recrea las tablas con
-> `sync({ force: true })` y vuelve a cargar los datos iniciales, así que los ids empiezan siempre en 1 y lo
-> que se crea durante una sesión se pierde al reiniciar el servidor.
+> No hay autenticación: el enunciado del sprint la deja por fuera. Las tablas se crean con `sync()` sin
+> `force: true`, así que lo que se crea desde la app o desde Postman se conserva al reiniciar el servidor. Los
+> datos iniciales solo se cargan cuando la tabla está vacía. Para volver a ellos, borra las tablas en DBeaver
+> y arranca otra vez.
 
 ## Contenido
 
@@ -64,10 +65,10 @@ foráneas quedan también en PostgreSQL, así que no puede quedar una reseña ap
 
 | Área | Qué tiene |
 |---|---|
-| **Usuarios** | Consulta de un usuario por id, y de sus reseñas con el álbum de cada una. |
+| **Usuarios** | Todos los usuarios, uno por id y sus reseñas con el álbum de cada una. |
 | **Álbumes** | Todos los álbumes, el detalle de uno por id, y sus reseñas con el usuario que escribió cada una. |
-| **Reseñas** | Crear con id de usuario, id de álbum, calificación, comentario y fecha de escucha; modificar y eliminar por id. |
-| **Datos iniciales** | 5 usuarios, los 8 álbumes de la app con sus portadas y 12 reseñas, cargados al arrancar con `count()` y `bulkCreate`. Los 5 usuarios escribieron alguna y todos los álbumes, salvo *Random Access Memories*, tienen al menos una. El usuario 1 es el de la app, con las 4 reseñas de *Mis reseñas*, y los ids de los álbumes coinciden con los de la app. |
+| **Reseñas** | Todas las reseñas con el usuario que escribió cada una, de la más nueva a la más vieja. Crear con id de usuario, id de álbum, calificación, comentario y fecha de escucha; modificar y eliminar por id. |
+| **Datos iniciales** | 5 usuarios, los 8 álbumes de la app con sus portadas y 12 reseñas, cargados con `count()` y `bulkCreate` solo si la tabla está vacía. Los 5 usuarios escribieron alguna y todos los álbumes, salvo *Random Access Memories*, tienen al menos una. El usuario 1 es el de la app, con las 4 reseñas de su perfil, y los ids de los álbumes coinciden con los de la app. |
 | **Errores** | `404` en JSON cuando el usuario, el álbum o la reseña no existen, y `500` en JSON cuando una consulta falla. |
 
 ## Arquitectura
@@ -83,7 +84,7 @@ flowchart LR
 
 Cada petición entra por un router, que la pasa a una función del controlador; el controlador consulta con los
 modelos de Sequelize y responde JSON. Las relaciones se declaran en `models/relations.js`, y el arranque sigue
-siempre el mismo orden: conectar, crear las tablas, crear las relaciones y cargar los datos.
+siempre el mismo orden: conectar, crear las tablas que no existan, crear las relaciones y cargar los datos.
 
 | Capa | Tecnología |
 |---|---|
@@ -112,7 +113,9 @@ npm install
 npm run dev
 ```
 
-En la consola tienen que salir estas líneas, y la API queda en `http://localhost:3000`:
+La primera vez, con las tablas vacías, en la consola tienen que salir estas líneas, y la API queda en
+`http://localhost:3000`. En los arranques siguientes solo salen la primera y la última, porque los datos ya
+están guardados:
 
 ```text
 Conexión a la base de datos establecida
@@ -126,11 +129,14 @@ Servidor escuchando en el puerto 3000
 
 | Método | Ruta | Qué hace | Respuestas |
 |---|---|---|---|
+| `GET` | `/usuarios` | Todos los usuarios | `200` |
 | `GET` | `/usuarios/:id` | Un usuario por id | `200` · `404` |
 | `GET` | `/usuarios/:id/reviews` | Las reseñas de un usuario, con el álbum de cada una | `200` · `404` |
 | `GET` | `/albumes` | Todos los álbumes | `200` |
 | `GET` | `/albumes/:id` | El detalle de un álbum | `200` · `404` |
 | `GET` | `/albumes/:id/reviews` | Las reseñas de un álbum, con el usuario de cada una | `200` · `404` |
+| `GET` | `/reviews` | Todas las reseñas, con el usuario de cada una, de la más nueva a la más vieja | `200` |
+| `GET` | `/reviews/:id` | Una reseña por id, con el usuario que la escribió | `200` · `404` |
 | `POST` | `/reviews` | Crea una reseña | `200` · `404` |
 | `PUT` | `/reviews/:id` | Modifica una reseña | `200` · `404` |
 | `DELETE` | `/reviews/:id` | Elimina una reseña | `200` · `404` |
@@ -150,7 +156,7 @@ va como fecha `AAAA-MM-DD`:
 
 Si el usuario o el álbum no existen, responde `404` con `{ "error": "Usuario no encontrado" }` o
 `{ "error": "Álbum no encontrado" }`. Eliminar responde `{ "message": "Review eliminada" }`. Las reseñas de un
-álbum traen anidado al usuario que las escribió:
+álbum y la lista de todas las reseñas traen anidado al usuario que las escribió:
 
 ```json
 [
@@ -163,22 +169,24 @@ Si el usuario o el álbum no existen, responde `404` con `{ "error": "Usuario no
     "albumId": 6,
     "createdAt": "2026-10-09T15:24:00.941Z",
     "updatedAt": "2026-10-09T15:24:00.941Z",
-    "usuario": { "id": 1, "nombre": "Sofía Ramírez", "fotoUrl": null }
+    "usuario": { "id": 1, "nombre": "Andres Contreras", "fotoUrl": null }
   }
 ]
 ```
 
 ## Pruebas con Postman
 
-Con el servidor recién arrancado, esta secuencia recorre todo lo que pide el sprint. En los `POST` y `PUT`, el
-body va en *Body → raw → JSON*.
+Esta secuencia recorre todo lo que pide el sprint. En los `POST` y `PUT`, el body va en *Body → raw → JSON*.
+Con la base recién creada, la primera reseña nueva tiene el id `13`; si ya creaste otras, usa el `id` que
+devuelve el `POST`.
 
-1. `GET /usuarios/1` y `GET /usuarios/999` (`404`).
+1. `GET /usuarios`, `GET /usuarios/1` y `GET /usuarios/999` (`404`).
 2. `GET /albumes`, `GET /albumes/1` y `GET /albumes/999` (`404`).
-3. `POST /reviews` con el body de arriba: crea la reseña con id `13`.
-4. `GET /albumes/6/reviews` y `GET /usuarios/1/reviews`: la reseña aparece en los dos.
-5. `PUT /reviews/13` con `{ "calificacion": 4, "comentario": "Editada", "fechaEscucha": "2026-10-09" }`.
-6. `DELETE /reviews/13` (`200` con el mensaje), y otra vez para ver el `404`.
+3. `GET /reviews`: las 12 reseñas iniciales, cada una con su usuario.
+4. `POST /reviews` con el body de arriba: crea la reseña con id `13`.
+5. `GET /albumes/6/reviews`, `GET /usuarios/1/reviews` y `GET /reviews`: la reseña aparece en los tres.
+6. `PUT /reviews/13` con `{ "calificacion": 4, "comentario": "Editada", "fechaEscucha": "2026-10-09" }`.
+7. `DELETE /reviews/13` (`200` con el mensaje), y otra vez para ver el `404`.
 
 ## Consumo desde la app
 
@@ -190,6 +198,10 @@ La app Android consume la API con Retrofit desde el emulador:
   autenticado, como permite el enunciado del sprint 9.
 - Eliminar responde un JSON y no un `204` vacío: con el `204` sin cuerpo, Retrofit falla en la app.
 - Los `include` de las reseñas traen el usuario o el álbum anidado, que la app lee en sus DTO.
+- `GET /reviews` llena el inicio de la app, que cruza cada reseña con su álbum por el `albumId`, y
+  `GET /reviews/:id` la discusión de una reseña.
+- Los likes y los seguidores solo existen en Firestore: con este backend esas funciones quedan como *to-do* en la
+  app, igual que en clase.
 
 ## Estructura
 
@@ -200,6 +212,6 @@ src/
 ├── models/       usuario · album · review · relations
 ├── routes/       usuario · album · review
 ├── app.js        crea la app y registra los routers
-└── index.js      conecta, crea tablas y relaciones, carga los datos y abre el puerto 3000
+└── index.js      conecta, crea las tablas que falten y las relaciones, carga los datos y abre el puerto 3000
 ```
 

@@ -2,8 +2,8 @@ import { Usuario } from "../models/usuario.js";
 
 const initialUsuarios = [
   {
-    nombre: "Sofía Ramírez",
-    email: "sofia@example.com",
+    nombre: "Andres Contreras",
+    email: "andres@example.com",
   },
   {
     nombre: "Mateo Gómez",
