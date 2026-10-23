@@ -13,7 +13,8 @@ async function init() {
     await sequelize.authenticate();
     console.log("Conexión a la base de datos establecida");
 
-    await sequelize.sync({ force: true }); // borra y recrea las tablas en cada arranque (solo desarrollo)
+    // Sin force: true las tablas y lo que se crea desde la app se conservan al reiniciar
+    await sequelize.sync();
 
     setupRelations();
 
