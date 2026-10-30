@@ -22,12 +22,21 @@ export const getReviews = async (req, res) => {
 export const getReviewById = async (req, res) => {
   try {
     const id = req.params.id;
+    // El usuario y el album salen en la misma consulta con include: asi la app no hace una
+    // segunda peticion para traer el album
     const review = await Review.findByPk(id, {
-      include: {
-        model: Usuario,
-        as: "usuario",
-        attributes: ["id", "nombre", "fotoUrl"],
-      },
+      include: [
+        {
+          model: Usuario,
+          as: "usuario",
+          attributes: ["id", "nombre", "fotoUrl"],
+        },
+        {
+          model: Album,
+          as: "album",
+          attributes: ["id", "titulo", "artista", "portadaUrl"],
+        },
+      ],
     });
     if (!review) {
       return res.status(404).json({ error: "Review no encontrada" });
