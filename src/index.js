@@ -3,10 +3,14 @@ import { sequelize } from "./database/database.js";
 import { loadInitialUsuarios } from "./database/initUsuarios.js";
 import { loadInitialAlbumes } from "./database/initAlbumes.js";
 import { loadInitialReviews } from "./database/initReviews.js";
+import { loadInitialCanciones } from "./database/initCanciones.js";
+import { loadInitialArtistas } from "./database/initArtistas.js";
 import { setupRelations } from "./models/relations.js";
 import "./models/usuario.js";
 import "./models/album.js";
 import "./models/review.js";
+import "./models/cancion.js";
+import "./models/artista.js";
 
 async function init() {
   try {
@@ -21,6 +25,8 @@ async function init() {
     await loadInitialUsuarios();
     await loadInitialAlbumes();
     await loadInitialReviews();
+    await loadInitialCanciones();
+    await loadInitialArtistas();
 
     app.listen(3000, () => console.log("Servidor escuchando en el puerto 3000"));
   } catch (error) {
