@@ -32,7 +32,7 @@ const initialAlbumes = [
   {
     titulo: "The Sharpest Lives",
     artista: "My Chemical Romance",
-    portadaUrl: "https://firebasestorage.googleapis.com/v0/b/mixtapp-720eb.firebasestorage.app/o/AlbumCovers%2Frush.jpg?alt=media&token=dfa6f793-2e0d-4841-a9dd-ad8a694ffc95",
+    portadaUrl: "https://cdn-images.dzcdn.net/images/cover/f31aab52640d3ef83b6fdee9b4acfe1d/1000x1000-000000-80-0-0.jpg",
     anio: 2006,
     genero: "Rock Alternativo",
   },

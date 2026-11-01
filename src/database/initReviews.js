@@ -1,5 +1,7 @@
 import { Review } from "../models/review.js";
 
+// usuarioId y albumId son los ids que les da PostgreSQL a los usuarios y albumes iniciales, en el
+// orden de sus listas. El usuario 1 es el de la app
 const initialReviews = [
   {
     calificacion: 4,
