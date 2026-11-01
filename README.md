@@ -85,10 +85,15 @@ solo álbum. Antes de guardar una reseña, la API comprueba que el usuario y el 
 foráneas quedan también en PostgreSQL, así que no puede quedar una reseña apuntando a algo que no existe. La
 calificación va de 0 a 5 y el comentario tiene hasta 500 caracteres, igual que en la app.
 
-Las canciones y los artistas no tienen relaciones: son el catálogo que la app muestra. `datosCuriosos` es un
-arreglo de textos de PostgreSQL y `tendencia` es la posición en el Top Colombia de Deezer del 31 de octubre de
-2026, o `null` si no está en el top. La canción guarda el nombre de su álbum como texto, porque no todos sus
-álbumes están en la tabla `albumes`.
+Las canciones y los artistas no tienen relaciones: son el catálogo que la app muestra, de cinco géneros (metal,
+nu metal, rock, reggaetón y música popular). `datosCuriosos` es un arreglo de textos de PostgreSQL con las
+secciones de los datos curiosos que la app guarda en Firestore, y `tendencia` es la posición en la lista de
+Deezer de su género del 1 de noviembre de 2026, o `null` si no está en la lista. La canción guarda el nombre de
+su álbum como texto, porque no todos sus álbumes están en la tabla `albumes`.
+
+Los datos iniciales solo se cargan si la tabla está vacía: para pasar al catálogo nuevo hay que vaciar las
+tablas `canciones` y `artistas` (`TRUNCATE canciones, artistas RESTART IDENTITY;` en psql) y volver a
+arrancar el servidor.
 
 ## Funcionalidades
 
@@ -98,7 +103,7 @@ arreglo de textos de PostgreSQL y `tendencia` es la posición en el Top Colombia
 | **Álbumes** | Todos los álbumes, el detalle de uno por id, y sus reseñas con el usuario que escribió cada una. |
 | **Reseñas** | Todas las reseñas con el usuario que escribió cada una, de la más nueva a la más vieja (con el id como segundo criterio, para que el orden no cambie). Crear con id de usuario, id de álbum, calificación de 0 a 5, comentario y fecha de escucha; modificar y eliminar por id. |
 | **Canciones y artistas** | Todas las canciones y todos los artistas del catálogo de la app, y uno por id. |
-| **Datos iniciales** | 5 usuarios, 8 álbumes con sus portadas, 12 reseñas, 46 canciones y 21 artistas, cargados con `count()` y `bulkCreate` solo si la tabla está vacía. Las canciones y los artistas son el mismo catálogo real de Firestore, con portadas de 1000 px y datos curiosos. Los 5 usuarios escribieron alguna y todos los álbumes, salvo *Random Access Memories*, tienen al menos una. El usuario 1 es el de la app, con las 4 reseñas de su perfil, y los ids de los álbumes coinciden con los de la app. |
+| **Datos iniciales** | 5 usuarios, 8 álbumes con sus portadas, 12 reseñas, 126 canciones y 56 artistas, cargados con `count()` y `bulkCreate` solo si la tabla está vacía. Las canciones y los artistas son el mismo catálogo real de Firestore, con portadas de 1000 px y datos curiosos. Los 5 usuarios escribieron alguna y todos los álbumes, salvo *Random Access Memories*, tienen al menos una. El usuario 1 es el de la app, con las 4 reseñas de su perfil, y los ids de los álbumes coinciden con los de la app. |
 | **Errores** | `400` en JSON cuando la calificación no va de 0 a 5, `404` cuando el usuario, el álbum, la reseña, la canción o el artista no existen, y `500` cuando una consulta falla. |
 
 ## Arquitectura
