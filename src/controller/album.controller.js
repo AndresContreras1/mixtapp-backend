@@ -24,6 +24,7 @@ export const getAlbumById = async (req, res) => {
   }
 };
 
+// Las resenas de un album con el usuario de cada una, de la mas nueva a la mas vieja
 export const getReviewsByAlbum = async (req, res) => {
   const { id } = req.params;
 
@@ -42,7 +43,10 @@ export const getReviewsByAlbum = async (req, res) => {
         as: "usuario",
         attributes: ["id", "nombre", "fotoUrl"],
       },
-      order: [["createdAt", "DESC"]],
+      order: [
+        ["createdAt", "DESC"],
+        ["id", "DESC"],
+      ],
     });
 
     return res.json(reviews);

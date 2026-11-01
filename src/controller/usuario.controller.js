@@ -24,6 +24,8 @@ export const getUsuarioById = async (req, res) => {
   }
 };
 
+// Las resenas de un usuario con el album y el usuario de cada una: la app arma la tarjeta
+// completa con una sola peticion
 export const getReviewsByUsuario = async (req, res) => {
   const { id } = req.params;
 
@@ -37,12 +39,22 @@ export const getReviewsByUsuario = async (req, res) => {
       where: {
         usuarioId: id,
       },
-      include: {
-        model: Album,
-        as: "album",
-        attributes: ["id", "titulo", "artista", "portadaUrl"],
-      },
-      order: [["createdAt", "DESC"]],
+      include: [
+        {
+          model: Album,
+          as: "album",
+          attributes: ["id", "titulo", "artista", "portadaUrl"],
+        },
+        {
+          model: Usuario,
+          as: "usuario",
+          attributes: ["id", "nombre", "fotoUrl"],
+        },
+      ],
+      order: [
+        ["createdAt", "DESC"],
+        ["id", "DESC"],
+      ],
     });
 
     return res.json(reviews);

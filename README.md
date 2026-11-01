@@ -1,12 +1,13 @@
 # Mixtapp Backend
 
-**La API REST de Mixtapp: usuarios, álbumes y las reseñas que los unen.**
+**La API REST de Mixtapp: usuarios, álbumes, canciones, artistas y las reseñas de los álbumes.**
 
 Mixtapp Backend es la API de [Mixtapp](https://github.com/AndresContreras1/Mixtapp), la app Android donde
 abres un álbum, le pones una calificación y escribes tu reseña. Expone los usuarios y los álbumes en modo
-lectura y un CRUD completo de reseñas, cada una ligada a un usuario y a un álbum. Está hecha con Node.js,
-Express y Sequelize sobre PostgreSQL. Es la entrega del sprint 8 de Computación Móvil, ajustada en el sprint 9
-para que la app la consuma con Retrofit.
+lectura y un CRUD completo de reseñas, cada una ligada a un usuario y a un álbum. También tiene las canciones y
+los artistas del catálogo de la app, en modo lectura. Está hecha con Node.js, Express y Sequelize sobre
+PostgreSQL. Es la entrega del sprint 8 de Computación Móvil, ajustada en el sprint 9 para que la app la consuma
+con Retrofit.
 
 ![Node.js](https://img.shields.io/badge/Node.js-24-5FA04E?logo=nodedotjs&logoColor=white)
 ![Express 5](https://img.shields.io/badge/Express-5.2-000000?logo=express&logoColor=white)
@@ -55,11 +56,44 @@ erDiagram
         int usuarioId FK
         int albumId FK
     }
+    CANCIONES {
+        int id PK
+        string titulo
+        string album
+        string artista
+        int anio
+        string genero
+        string subgenero
+        string portadaUrl
+        string[] datosCuriosos
+        int tendencia
+    }
+    ARTISTAS {
+        int id PK
+        string nombre
+        string grupo
+        string genero
+        string subgenero
+        string fotoUrl
+        string[] datosCuriosos
+        int tendencia
+    }
 ```
 
 Un usuario escribe muchas reseñas y un álbum recibe muchas; cada reseña pertenece a un solo usuario y a un
 solo álbum. Antes de guardar una reseña, la API comprueba que el usuario y el álbum existan, y las dos llaves
-foráneas quedan también en PostgreSQL, así que no puede quedar una reseña apuntando a algo que no existe.
+foráneas quedan también en PostgreSQL, así que no puede quedar una reseña apuntando a algo que no existe. La
+calificación va de 0 a 5 y el comentario tiene hasta 500 caracteres, igual que en la app.
+
+Las canciones y los artistas no tienen relaciones: son el catálogo que la app muestra, de cinco géneros (metal,
+nu metal, rock, reggaetón y música popular). `datosCuriosos` es un arreglo de textos de PostgreSQL con las
+secciones de los datos curiosos que la app guarda en Firestore, y `tendencia` es la posición en la lista de
+Deezer de su género del 1 de noviembre de 2026, o `null` si no está en la lista. La canción guarda el nombre de
+su álbum como texto, porque no todos sus álbumes están en la tabla `albumes`.
+
+Los datos iniciales solo se cargan si la tabla está vacía: para pasar al catálogo nuevo hay que vaciar las
+tablas `canciones` y `artistas` (`TRUNCATE canciones, artistas RESTART IDENTITY;` en psql) y volver a
+arrancar el servidor.
 
 ## Funcionalidades
 
@@ -67,9 +101,10 @@ foráneas quedan también en PostgreSQL, así que no puede quedar una reseña ap
 |---|---|
 | **Usuarios** | Todos los usuarios, uno por id y sus reseñas con el álbum de cada una. |
 | **Álbumes** | Todos los álbumes, el detalle de uno por id, y sus reseñas con el usuario que escribió cada una. |
-| **Reseñas** | Todas las reseñas con el usuario que escribió cada una, de la más nueva a la más vieja. Crear con id de usuario, id de álbum, calificación, comentario y fecha de escucha; modificar y eliminar por id. |
-| **Datos iniciales** | 5 usuarios, los 8 álbumes de la app con sus portadas y 12 reseñas, cargados con `count()` y `bulkCreate` solo si la tabla está vacía. Los 5 usuarios escribieron alguna y todos los álbumes, salvo *Random Access Memories*, tienen al menos una. El usuario 1 es el de la app, con las 4 reseñas de su perfil, y los ids de los álbumes coinciden con los de la app. |
-| **Errores** | `404` en JSON cuando el usuario, el álbum o la reseña no existen, y `500` en JSON cuando una consulta falla. |
+| **Reseñas** | Todas las reseñas con el usuario que escribió cada una, de la más nueva a la más vieja (con el id como segundo criterio, para que el orden no cambie). Crear con id de usuario, id de álbum, calificación de 0 a 5, comentario y fecha de escucha; modificar y eliminar por id. |
+| **Canciones y artistas** | Todas las canciones y todos los artistas del catálogo de la app, y uno por id. |
+| **Datos iniciales** | 5 usuarios, 8 álbumes con sus portadas, 12 reseñas, 126 canciones y 56 artistas, cargados con `count()` y `bulkCreate` solo si la tabla está vacía. Las canciones y los artistas son el mismo catálogo real de Firestore, con portadas de 1000 px y datos curiosos. Los 5 usuarios escribieron alguna y todos los álbumes, salvo *Random Access Memories*, tienen al menos una. El usuario 1 es el de la app, con las 4 reseñas de su perfil, y los ids de los álbumes coinciden con los de la app. |
+| **Errores** | `400` en JSON cuando la calificación no va de 0 a 5, `404` cuando el usuario, el álbum, la reseña, la canción o el artista no existen, y `500` cuando una consulta falla. |
 
 ## Arquitectura
 
@@ -122,8 +157,13 @@ Conexión a la base de datos establecida
 Initial usuarios loaded
 Initial albumes loaded
 Initial reviews loaded
+Initial canciones loaded
+Initial artistas loaded
 Servidor escuchando en el puerto 3000
 ```
+
+Si la base ya tenía las tablas de antes, `sync()` solo crea las que faltan (`canciones` y `artistas`) y les
+carga sus datos.
 
 ## Endpoints
 
@@ -131,15 +171,19 @@ Servidor escuchando en el puerto 3000
 |---|---|---|---|
 | `GET` | `/usuarios` | Todos los usuarios | `200` |
 | `GET` | `/usuarios/:id` | Un usuario por id | `200` · `404` |
-| `GET` | `/usuarios/:id/reviews` | Las reseñas de un usuario, con el álbum de cada una | `200` · `404` |
+| `GET` | `/usuarios/:id/reviews` | Las reseñas de un usuario, con el álbum y el usuario de cada una | `200` · `404` |
 | `GET` | `/albumes` | Todos los álbumes | `200` |
 | `GET` | `/albumes/:id` | El detalle de un álbum | `200` · `404` |
 | `GET` | `/albumes/:id/reviews` | Las reseñas de un álbum, con el usuario de cada una | `200` · `404` |
 | `GET` | `/reviews` | Todas las reseñas, con el usuario de cada una, de la más nueva a la más vieja | `200` |
-| `GET` | `/reviews/:id` | Una reseña por id, con el usuario que la escribió | `200` · `404` |
-| `POST` | `/reviews` | Crea una reseña | `200` · `404` |
-| `PUT` | `/reviews/:id` | Modifica una reseña | `200` · `404` |
+| `GET` | `/reviews/:id` | Una reseña por id, con el usuario que la escribió y su álbum | `200` · `404` |
+| `POST` | `/reviews` | Crea una reseña | `200` · `400` · `404` |
+| `PUT` | `/reviews/:id` | Modifica una reseña | `200` · `400` · `404` |
 | `DELETE` | `/reviews/:id` | Elimina una reseña | `200` · `404` |
+| `GET` | `/canciones` | Todas las canciones | `200` |
+| `GET` | `/canciones/:id` | Una canción por id | `200` · `404` |
+| `GET` | `/artistas` | Todos los artistas | `200` |
+| `GET` | `/artistas/:id` | Un artista por id | `200` · `404` |
 
 Crear una reseña lleva el id del usuario, el id del álbum y la reseña en el body. `fechaEscucha` es opcional y
 va como fecha `AAAA-MM-DD`:
@@ -154,7 +198,8 @@ va como fecha `AAAA-MM-DD`:
 }
 ```
 
-Si el usuario o el álbum no existen, responde `404` con `{ "error": "Usuario no encontrado" }` o
+Si la calificación no va de 0 a 5, responde `400` con `{ "error": "La calificación va de 0 a 5" }`. Si el
+usuario o el álbum no existen, responde `404` con `{ "error": "Usuario no encontrado" }` o
 `{ "error": "Álbum no encontrado" }`. Eliminar responde `{ "message": "Review eliminada" }`. Las reseñas de un
 álbum y la lista de todas las reseñas traen anidado al usuario que las escribió:
 
@@ -185,8 +230,10 @@ devuelve el `POST`.
 3. `GET /reviews`: las 12 reseñas iniciales, cada una con su usuario.
 4. `POST /reviews` con el body de arriba: crea la reseña con id `13`.
 5. `GET /albumes/6/reviews`, `GET /usuarios/1/reviews` y `GET /reviews`: la reseña aparece en los tres.
-6. `PUT /reviews/13` con `{ "calificacion": 4, "comentario": "Editada", "fechaEscucha": "2026-10-09" }`.
+6. `PUT /reviews/13` con `{ "calificacion": 4, "comentario": "Editada", "fechaEscucha": "2026-10-09" }`, y
+   otra vez con `{ "calificacion": 7 }` para ver el `400`.
 7. `DELETE /reviews/13` (`200` con el mensaje), y otra vez para ver el `404`.
+8. `GET /canciones`, `GET /canciones/1`, `GET /artistas`, `GET /artistas/11` y `GET /artistas/999` (`404`).
 
 ## Consumo desde la app
 
@@ -200,17 +247,19 @@ La app Android consume la API con Retrofit desde el emulador:
 - Los `include` de las reseñas traen el usuario o el álbum anidado, que la app lee en sus DTO.
 - `GET /reviews` llena el inicio de la app, que cruza cada reseña con su álbum por el `albumId`, y
   `GET /reviews/:id` la discusión de una reseña.
-- Los likes y los seguidores solo existen en Firestore: con este backend esas funciones quedan como *to-do* en la
-  app, igual que en clase.
+- `GET /canciones` y `GET /artistas` llenan las filas de canciones y artistas del inicio con este backend.
+- Aquí las reseñas son solo de álbumes. Las reseñas de canciones y artistas, los likes, los guardados, los
+  comentarios, las notificaciones y los seguidores solo existen en Firestore: con este backend esas funciones
+  quedan como *to-do* en la app, igual que en clase.
 
 ## Estructura
 
 ```text
 src/
-├── controller/   usuario · album · review
-├── database/     database.js (conexión) · initUsuarios · initAlbumes · initReviews
-├── models/       usuario · album · review · relations
-├── routes/       usuario · album · review
+├── controller/   usuario · album · review · cancion · artista
+├── database/     database.js (conexión) · initUsuarios · initAlbumes · initReviews · initCanciones · initArtistas
+├── models/       usuario · album · review · cancion · artista · relations
+├── routes/       usuario · album · review · cancion · artista
 ├── app.js        crea la app y registra los routers
 └── index.js      conecta, crea las tablas que falten y las relaciones, carga los datos y abre el puerto 3000
 ```
