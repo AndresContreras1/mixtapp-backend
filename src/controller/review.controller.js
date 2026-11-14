@@ -2,9 +2,21 @@ import { Review } from "../models/review.js";
 import { Usuario } from "../models/usuario.js";
 import { Album } from "../models/album.js";
 
-// La calificacion va de 0 a 5. Se revisa antes de guardar para responder 400 con el motivo
-function calificacionInvalida(calificacion) {
-  return calificacion !== undefined && (calificacion < 0 || calificacion > 5);
+// Se revisa antes de guardar para responder 400 con el motivo y no un 500: que la calificacion
+// llegue y vaya de 0 a 5, y que el comentario no pase de 500 caracteres. Al crear la calificacion
+// es obligatoria; al modificar puede no llegar y se queda la que estaba, pero no puede llegar nula.
+// Devuelve el motivo del error, o null si todo esta bien
+function errorEnReview(calificacion, comentario, calificacionObligatoria) {
+  if (calificacion === null || (calificacionObligatoria && calificacion === undefined)) {
+    return "La calificación es obligatoria";
+  }
+  if (calificacion !== undefined && (calificacion < 0 || calificacion > 5)) {
+    return "La calificación va de 0 a 5";
+  }
+  if (comentario !== undefined && comentario !== null && comentario.length > 500) {
+    return "El comentario va hasta 500 caracteres";
+  }
+  return null;
 }
 
 // Todas las resenas con su usuario, de la mas nueva a la mas vieja. Si dos tienen la misma fecha,
@@ -60,10 +72,11 @@ export const getReviewById = async (req, res) => {
 // Antes de crear se comprueba que el usuario y el album existan y que la calificacion sea valida
 export const createReview = async (req, res) => {
   try {
-    const { usuarioId, albumId, calificacion } = req.body;
+    const { usuarioId, albumId, calificacion, comentario } = req.body;
 
-    if (calificacionInvalida(calificacion)) {
-      return res.status(400).json({ error: "La calificación va de 0 a 5" });
+    const motivo = errorEnReview(calificacion, comentario, true);
+    if (motivo) {
+      return res.status(400).json({ error: motivo });
     }
 
     const usuario = await Usuario.findByPk(usuarioId);
@@ -88,8 +101,9 @@ export const updateReview = async (req, res) => {
   try {
     const id = req.params.id;
 
-    if (calificacionInvalida(req.body.calificacion)) {
-      return res.status(400).json({ error: "La calificación va de 0 a 5" });
+    const motivo = errorEnReview(req.body.calificacion, req.body.comentario, false);
+    if (motivo) {
+      return res.status(400).json({ error: motivo });
     }
 
     const review = await Review.findByPk(id);
