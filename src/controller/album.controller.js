@@ -1,6 +1,6 @@
 import { Album } from "../models/album.js";
 import { Review } from "../models/review.js";
-import { Usuario } from "../models/usuario.js";
+import { incluirUsuario, ordenMasNuevas } from "./consultas.js";
 
 export const getAlbumes = async (req, res) => {
   try {
@@ -38,15 +38,8 @@ export const getReviewsByAlbum = async (req, res) => {
       where: {
         albumId: id,
       },
-      include: {
-        model: Usuario,
-        as: "usuario",
-        attributes: ["id", "nombre", "fotoUrl"],
-      },
-      order: [
-        ["createdAt", "DESC"],
-        ["id", "DESC"],
-      ],
+      include: incluirUsuario,
+      order: ordenMasNuevas,
     });
 
     return res.json(reviews);

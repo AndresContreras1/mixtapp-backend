@@ -1,6 +1,7 @@
 import { Review } from "../models/review.js";
 import { Usuario } from "../models/usuario.js";
 import { Album } from "../models/album.js";
+import { incluirUsuario, incluirAlbum, ordenMasNuevas } from "./consultas.js";
 
 // Se revisa antes de guardar para responder 400 con el motivo y no un 500: que la calificacion
 // llegue y vaya de 0 a 5, y que el comentario no pase de 500 caracteres. Al crear la calificacion
@@ -19,20 +20,12 @@ function errorEnReview(calificacion, comentario, calificacionObligatoria) {
   return null;
 }
 
-// Todas las resenas con su usuario, de la mas nueva a la mas vieja. Si dos tienen la misma fecha,
-// el id decide, asi el orden no cambia entre una peticion y otra
+// Todas las resenas con su usuario, de la mas nueva a la mas vieja
 export const getReviews = async (req, res) => {
   try {
     const reviews = await Review.findAll({
-      include: {
-        model: Usuario,
-        as: "usuario",
-        attributes: ["id", "nombre", "fotoUrl"],
-      },
-      order: [
-        ["createdAt", "DESC"],
-        ["id", "DESC"],
-      ],
+      include: incluirUsuario,
+      order: ordenMasNuevas,
     });
 
     return res.json(reviews);
@@ -47,18 +40,7 @@ export const getReviewById = async (req, res) => {
     // El usuario y el album salen en la misma consulta con include: asi la app no hace una
     // segunda peticion para traer el album
     const review = await Review.findByPk(id, {
-      include: [
-        {
-          model: Usuario,
-          as: "usuario",
-          attributes: ["id", "nombre", "fotoUrl"],
-        },
-        {
-          model: Album,
-          as: "album",
-          attributes: ["id", "titulo", "artista", "portadaUrl"],
-        },
-      ],
+      include: [incluirUsuario, incluirAlbum],
     });
     if (!review) {
       return res.status(404).json({ error: "Review no encontrada" });
