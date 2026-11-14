@@ -2,6 +2,7 @@ import { Album } from "../models/album.js";
 import { Review } from "../models/review.js";
 import { incluirUsuario, ordenMasNuevas } from "./consultas.js";
 
+// Todos los albumes
 export const getAlbumes = async (req, res) => {
   try {
     const albumes = await Album.findAll();
@@ -12,6 +13,7 @@ export const getAlbumes = async (req, res) => {
   }
 };
 
+// El detalle de un album por id, o 404 si no existe
 export const getAlbumById = async (req, res) => {
   try {
     const id = req.params.id;

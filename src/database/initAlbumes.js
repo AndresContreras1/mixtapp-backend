@@ -1,5 +1,7 @@
 import { Album } from "../models/album.js";
 
+// Los 8 albumes de la app, con los ids 1 a 8 en este orden. La fecha de salida y el Top Colombia
+// salen del catalogo de la app; los albumes que no estan en el catalogo los tienen en null
 const initialAlbumes = [
   {
     titulo: "Teatro D'ira Vol I",

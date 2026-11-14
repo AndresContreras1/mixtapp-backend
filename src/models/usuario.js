@@ -1,6 +1,7 @@
 import { DataTypes } from "sequelize";
 import { sequelize } from "../database/database.js";
 
+// Los usuarios que escriben las resenas, de solo lectura en la API; fotoUrl puede ser null
 export const Usuario = sequelize.define("usuarios", {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   nombre: { type: DataTypes.STRING, allowNull: false },

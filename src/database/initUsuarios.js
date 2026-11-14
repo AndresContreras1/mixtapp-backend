@@ -1,5 +1,6 @@
 import { Usuario } from "../models/usuario.js";
 
+// Los 5 usuarios iniciales, sin foto; el primero (id 1) es el usuario autenticado de la app
 const initialUsuarios = [
   {
     nombre: "Andres Contreras",

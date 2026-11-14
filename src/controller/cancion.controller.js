@@ -1,5 +1,6 @@
 import { Cancion } from "../models/cancion.js";
 
+// Todas las canciones del catalogo
 export const getCanciones = async (req, res) => {
   try {
     const canciones = await Cancion.findAll();
@@ -10,6 +11,7 @@ export const getCanciones = async (req, res) => {
   }
 };
 
+// Una cancion por id, o 404 si no existe
 export const getCancionById = async (req, res) => {
   try {
     const id = req.params.id;

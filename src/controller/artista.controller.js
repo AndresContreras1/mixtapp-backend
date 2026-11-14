@@ -1,5 +1,6 @@
 import { Artista } from "../models/artista.js";
 
+// Todos los artistas del catalogo
 export const getArtistas = async (req, res) => {
   try {
     const artistas = await Artista.findAll();
@@ -10,6 +11,7 @@ export const getArtistas = async (req, res) => {
   }
 };
 
+// Un artista por id, o 404 si no existe
 export const getArtistaById = async (req, res) => {
   try {
     const id = req.params.id;

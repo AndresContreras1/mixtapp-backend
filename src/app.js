@@ -5,6 +5,7 @@ import reviewRoutes from "./routes/review.routes.js";
 import cancionRoutes from "./routes/cancion.routes.js";
 import artistaRoutes from "./routes/artista.routes.js";
 
+// Crea la app de Express, lee en JSON el body de las peticiones y registra el router de cada recurso
 const app = express();
 
 app.use(express.json());

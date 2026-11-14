@@ -2,6 +2,7 @@ import { Usuario } from "../models/usuario.js";
 import { Review } from "../models/review.js";
 import { incluirUsuario, incluirAlbum, ordenMasNuevas } from "./consultas.js";
 
+// Todos los usuarios
 export const getUsuarios = async (req, res) => {
   try {
     const usuarios = await Usuario.findAll();
@@ -12,6 +13,7 @@ export const getUsuarios = async (req, res) => {
   }
 };
 
+// Un usuario por id, o 404 si no existe
 export const getUsuarioById = async (req, res) => {
   try {
     const id = req.params.id;

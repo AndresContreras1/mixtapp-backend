@@ -53,7 +53,7 @@ export const getReviewById = async (req, res) => {
   }
 };
 
-// Antes de crear se comprueba que el usuario y el album existan y que la calificacion sea valida
+// Antes de crear se revisan la calificacion y el comentario, y que el usuario y el album existan
 export const createReview = async (req, res) => {
   try {
     const { usuarioId, albumId, calificacion, comentario } = req.body;

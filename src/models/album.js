@@ -1,6 +1,7 @@
 import { DataTypes } from "sequelize";
 import { sequelize } from "../database/database.js";
 
+// Los albumes que se resenan, de solo lectura en la API; sus ids 1 a 8 son los mismos de la app
 export const Album = sequelize.define("albumes", {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   titulo: { type: DataTypes.STRING, allowNull: false },
