@@ -9,6 +9,7 @@ export const Artista = sequelize.define("artistas", {
   genero: { type: DataTypes.STRING, allowNull: false },
   subgenero: { type: DataTypes.STRING, allowNull: true },
   fotoUrl: { type: DataTypes.STRING, allowNull: false, validate: { isUrl: true } },
-  datosCuriosos: { type: DataTypes.ARRAY(DataTypes.STRING), allowNull: false, defaultValue: [] },
+  // Los mismos parrafos de las canciones: cada texto es un STRING(1000), porque pasan de 255
+  datosCuriosos: { type: DataTypes.ARRAY(DataTypes.STRING(1000)), allowNull: false, defaultValue: [] },
   tendencia: { type: DataTypes.INTEGER, allowNull: true },
 });
