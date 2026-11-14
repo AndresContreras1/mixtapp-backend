@@ -5,6 +5,7 @@ export const getCanciones = async (req, res) => {
     const canciones = await Cancion.findAll();
     return res.json(canciones);
   } catch (error) {
+    console.error("Error en getCanciones:", error);
     return res.status(500).json({ error: error.message });
   }
 };
@@ -18,6 +19,7 @@ export const getCancionById = async (req, res) => {
     }
     return res.json(cancion);
   } catch (error) {
+    console.error("Error en getCancionById:", error);
     return res.status(500).json({ error: error.message });
   }
 };

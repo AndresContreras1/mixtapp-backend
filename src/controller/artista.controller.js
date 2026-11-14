@@ -5,6 +5,7 @@ export const getArtistas = async (req, res) => {
     const artistas = await Artista.findAll();
     return res.json(artistas);
   } catch (error) {
+    console.error("Error en getArtistas:", error);
     return res.status(500).json({ error: error.message });
   }
 };
@@ -18,6 +19,7 @@ export const getArtistaById = async (req, res) => {
     }
     return res.json(artista);
   } catch (error) {
+    console.error("Error en getArtistaById:", error);
     return res.status(500).json({ error: error.message });
   }
 };

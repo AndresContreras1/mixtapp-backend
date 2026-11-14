@@ -30,6 +30,7 @@ export const getReviews = async (req, res) => {
 
     return res.json(reviews);
   } catch (error) {
+    console.error("Error en getReviews:", error);
     return res.status(500).json({ error: error.message });
   }
 };
@@ -47,6 +48,7 @@ export const getReviewById = async (req, res) => {
     }
     return res.json(review);
   } catch (error) {
+    console.error("Error en getReviewById:", error);
     return res.status(500).json({ error: error.message });
   }
 };
@@ -74,6 +76,7 @@ export const createReview = async (req, res) => {
     const newReview = await Review.create(req.body);
     return res.json(newReview);
   } catch (error) {
+    console.error("Error en createReview:", error);
     return res.status(500).json({ error: error.message });
   }
 };
@@ -98,6 +101,7 @@ export const updateReview = async (req, res) => {
     await review.update({ calificacion, comentario, fechaEscucha });
     return res.json(review);
   } catch (error) {
+    console.error("Error en updateReview:", error);
     return res.status(500).json({ error: error.message });
   }
 };
@@ -113,6 +117,7 @@ export const deleteReview = async (req, res) => {
     await review.destroy();
     return res.json({ message: "Review eliminada" });
   } catch (error) {
+    console.error("Error en deleteReview:", error);
     return res.status(500).json({ error: error.message });
   }
 };

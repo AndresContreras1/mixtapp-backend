@@ -7,6 +7,7 @@ export const getAlbumes = async (req, res) => {
     const albumes = await Album.findAll();
     return res.json(albumes);
   } catch (error) {
+    console.error("Error en getAlbumes:", error);
     return res.status(500).json({ error: error.message });
   }
 };
@@ -20,6 +21,7 @@ export const getAlbumById = async (req, res) => {
     }
     return res.json(album);
   } catch (error) {
+    console.error("Error en getAlbumById:", error);
     return res.status(500).json({ error: error.message });
   }
 };
@@ -44,6 +46,7 @@ export const getReviewsByAlbum = async (req, res) => {
 
     return res.json(reviews);
   } catch (error) {
+    console.error("Error en getReviewsByAlbum:", error);
     return res.status(500).json({ error: error.message });
   }
 };

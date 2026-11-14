@@ -7,6 +7,7 @@ export const getUsuarios = async (req, res) => {
     const usuarios = await Usuario.findAll();
     return res.json(usuarios);
   } catch (error) {
+    console.error("Error en getUsuarios:", error);
     return res.status(500).json({ error: error.message });
   }
 };
@@ -20,6 +21,7 @@ export const getUsuarioById = async (req, res) => {
     }
     return res.json(usuario);
   } catch (error) {
+    console.error("Error en getUsuarioById:", error);
     return res.status(500).json({ error: error.message });
   }
 };
@@ -45,6 +47,7 @@ export const getReviewsByUsuario = async (req, res) => {
 
     return res.json(reviews);
   } catch (error) {
+    console.error("Error en getReviewsByUsuario:", error);
     return res.status(500).json({ error: error.message });
   }
 };
