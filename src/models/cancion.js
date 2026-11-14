@@ -9,6 +9,8 @@ export const Cancion = sequelize.define("canciones", {
   album: { type: DataTypes.STRING, allowNull: false },
   artista: { type: DataTypes.STRING, allowNull: false },
   anio: { type: DataTypes.INTEGER, allowNull: false },
+  // La fecha de salida de su album, AAAA-MM-DD
+  fechaLanzamiento: { type: DataTypes.DATEONLY, allowNull: true },
   genero: { type: DataTypes.STRING, allowNull: false },
   subgenero: { type: DataTypes.STRING, allowNull: true },
   portadaUrl: { type: DataTypes.STRING, allowNull: false, validate: { isUrl: true } },
@@ -17,4 +19,6 @@ export const Cancion = sequelize.define("canciones", {
   datosCuriosos: { type: DataTypes.ARRAY(DataTypes.STRING(1000)), allowNull: false, defaultValue: [] },
   // Puesto en la lista de Deezer de su genero; null si no esta en la lista
   tendencia: { type: DataTypes.INTEGER, allowNull: true },
+  // Puesto en el Top Colombia de Deezer; null si no esta en esa lista
+  tendenciaColombia: { type: DataTypes.INTEGER, allowNull: true },
 });
