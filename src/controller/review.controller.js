@@ -96,12 +96,14 @@ export const createReview = async (req, res) => {
   }
 };
 
-// Solo cambia lo que llega en el body: calificacion, comentario o fecha de escucha
+// Solo cambia calificacion, comentario o fecha de escucha, y de esos solo los que lleguen en el body.
+// usuarioId y albumId no se toman del body: una resena no cambia de usuario ni de album
 export const updateReview = async (req, res) => {
   try {
     const id = req.params.id;
+    const { calificacion, comentario, fechaEscucha } = req.body;
 
-    const motivo = errorEnReview(req.body.calificacion, req.body.comentario, false);
+    const motivo = errorEnReview(calificacion, comentario, false);
     if (motivo) {
       return res.status(400).json({ error: motivo });
     }
@@ -110,7 +112,8 @@ export const updateReview = async (req, res) => {
     if (!review) {
       return res.status(404).json({ error: "Review no encontrada" });
     }
-    await review.update(req.body);
+    // Sequelize no toca los campos que quedan en undefined porque no llegaron
+    await review.update({ calificacion, comentario, fechaEscucha });
     return res.json(review);
   } catch (error) {
     return res.status(500).json({ error: error.message });
