@@ -15,6 +15,6 @@ export const Cancion = sequelize.define("canciones", {
   // Una lista de parrafos: en PostgreSQL es un arreglo. Con STRING solo entran 255 caracteres y los
   // parrafos llegan a 600, asi que cada texto es un STRING(1000)
   datosCuriosos: { type: DataTypes.ARRAY(DataTypes.STRING(1000)), allowNull: false, defaultValue: [] },
-  // Posicion en el Top Colombia; null si no esta en el top
+  // Puesto en la lista de Deezer de su genero; null si no esta en la lista
   tendencia: { type: DataTypes.INTEGER, allowNull: true },
 });
