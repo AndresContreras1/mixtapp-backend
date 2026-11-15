@@ -1,14 +1,17 @@
 import { Artista } from "../models/artista.js";
 
+// Todos los artistas del catalogo
 export const getArtistas = async (req, res) => {
   try {
     const artistas = await Artista.findAll();
     return res.json(artistas);
   } catch (error) {
+    console.error("Error en getArtistas:", error);
     return res.status(500).json({ error: error.message });
   }
 };
 
+// Un artista por id, o 404 si no existe
 export const getArtistaById = async (req, res) => {
   try {
     const id = req.params.id;
@@ -18,6 +21,7 @@ export const getArtistaById = async (req, res) => {
     }
     return res.json(artista);
   } catch (error) {
+    console.error("Error en getArtistaById:", error);
     return res.status(500).json({ error: error.message });
   }
 };

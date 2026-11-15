@@ -6,8 +6,9 @@ Mixtapp Backend es la API de [Mixtapp](https://github.com/AndresContreras1/Mixta
 abres un álbum, le pones una calificación y escribes tu reseña. Expone los usuarios y los álbumes en modo
 lectura y un CRUD completo de reseñas, cada una ligada a un usuario y a un álbum. También tiene las canciones y
 los artistas del catálogo de la app, en modo lectura. Está hecha con Node.js, Express y Sequelize sobre
-PostgreSQL. Es la entrega del sprint 8 de Computación Móvil, ajustada en el sprint 9 para que la app la consuma
-con Retrofit.
+PostgreSQL. Empezó como la entrega del sprint 8 de Computación Móvil (usuarios, álbumes y reseñas), se ajustó
+en el sprint 9 para que la app la consuma con Retrofit y después sumó las canciones y los artistas del catálogo,
+con los mismos campos que leen los DTO de la app.
 
 ![Node.js](https://img.shields.io/badge/Node.js-24-5FA04E?logo=nodedotjs&logoColor=white)
 ![Express 5](https://img.shields.io/badge/Express-5.2-000000?logo=express&logoColor=white)
@@ -20,7 +21,8 @@ con Retrofit.
 > No hay autenticación: el enunciado del sprint la deja por fuera. Las tablas se crean con `sync()` sin
 > `force: true`, así que lo que se crea desde la app o desde Postman se conserva al reiniciar el servidor. Los
 > datos iniciales solo se cargan cuando la tabla está vacía. Para volver a ellos, borra las tablas en DBeaver
-> y arranca otra vez.
+> y arranca otra vez. Si ya tenías la base de una versión anterior, mira
+> [Recrear las tablas](#recrear-las-tablas): `sync()` no agrega columnas a una tabla que ya existe.
 
 ## Contenido
 
@@ -46,7 +48,9 @@ erDiagram
         string artista
         string portadaUrl
         int anio
+        date fechaLanzamiento
         string genero
+        int tendenciaColombia
     }
     REVIEWS {
         int id PK
@@ -62,11 +66,13 @@ erDiagram
         string album
         string artista
         int anio
+        date fechaLanzamiento
         string genero
         string subgenero
         string portadaUrl
         string[] datosCuriosos
         int tendencia
+        int tendenciaColombia
     }
     ARTISTAS {
         int id PK
@@ -75,25 +81,49 @@ erDiagram
         string genero
         string subgenero
         string fotoUrl
+        string instagram
         string[] datosCuriosos
         int tendencia
+        int tendenciaColombia
     }
 ```
 
 Un usuario escribe muchas reseñas y un álbum recibe muchas; cada reseña pertenece a un solo usuario y a un
 solo álbum. Antes de guardar una reseña, la API comprueba que el usuario y el álbum existan, y las dos llaves
 foráneas quedan también en PostgreSQL, así que no puede quedar una reseña apuntando a algo que no existe. La
-calificación va de 0 a 5 y el comentario tiene hasta 500 caracteres, igual que en la app.
+calificación es obligatoria y va de 0 a 5, y el comentario tiene hasta 500 caracteres, igual que en la app: si
+falta la calificación, llega nula o se sale del rango, o si el comentario pasa de 500 caracteres, la API
+responde `400` antes de guardar. Modificar una reseña solo cambia la calificación, el comentario y la fecha de
+escucha; el usuario y el álbum de una reseña no cambian aunque lleguen en el body.
 
 Las canciones y los artistas no tienen relaciones: son el catálogo que la app muestra, de cinco géneros (metal,
-nu metal, rock, reggaetón y música popular). `datosCuriosos` es un arreglo de textos de PostgreSQL con las
-secciones de los datos curiosos que la app guarda en Firestore, y `tendencia` es la posición en la lista de
-Deezer de su género del 1 de noviembre de 2026, o `null` si no está en la lista. La canción guarda el nombre de
-su álbum como texto, porque no todos sus álbumes están en la tabla `albumes`.
+nu metal, rock, reggaetón y música popular), con los mismos campos que leen los DTO de la app:
 
-Los datos iniciales solo se cargan si la tabla está vacía: para pasar al catálogo nuevo hay que vaciar las
-tablas `canciones` y `artistas` (`TRUNCATE canciones, artistas RESTART IDENTITY;` en psql) y volver a
-arrancar el servidor.
+| Campo | Qué es |
+|---|---|
+| `datosCuriosos` | Arreglo de PostgreSQL con los párrafos de los datos curiosos de cada canción o artista. Cada texto es un `STRING(1000)` (los párrafos llegan a 600 caracteres; con `STRING` PostgreSQL los cortaba en 255). Son los mismos textos de las historias de Firestore, pero la app no los lee de aquí: su pantalla de datos curiosos solo funciona con Firestore. |
+| `tendencia` | Puesto en la lista de Deezer de su género del 1 de noviembre de 2026, o `null` si no está en la lista. |
+| `tendenciaColombia` | Puesto en el Top Colombia de Deezer del 5 de noviembre de 2026, o `null` si no está en esa lista. También está en `albumes`. |
+| `fechaLanzamiento` | Fecha de salida del álbum, `AAAA-MM-DD`. En `canciones` es la de su álbum; en `albumes` es `null` para los que no están en el catálogo de la app (*Rush!* y *Random Access Memories*). |
+| `instagram` | Solo en `artistas`: el usuario de Instagram sin la `@`, el de su banda si es integrante, o `null` si no tiene. |
+
+La canción guarda el nombre de su álbum como texto, porque no todos sus álbumes están en la tabla `albumes`.
+
+### Recrear las tablas
+
+`sync()` crea las tablas que no existen, pero no cambia las que ya están: no agrega columnas nuevas ni cambia
+el tipo de una columna. Si la base viene de una versión anterior, sin `fechaLanzamiento`, `tendenciaColombia` ni
+`instagram`, y con `datosCuriosos` cortado en 255 caracteres, `GET /albumes`, `GET /canciones` y
+`GET /artistas` responden `500` con `no existe la columna «fechaLanzamiento»` (o `«instagram»`). Para
+recrearlas, con el servidor apagado, en psql o en el editor SQL de DBeaver:
+
+```sql
+DROP TABLE reviews, albumes, canciones, artistas;
+```
+
+Al volver a arrancar, `sync()` crea las cuatro tablas con las columnas nuevas y les carga sus datos iniciales.
+`reviews` entra en la lista porque tiene la llave foránea hacia `albumes`: se pierden las reseñas creadas desde
+la app o desde Postman, y vuelven las 12 iniciales. `usuarios` no cambia y se conserva.
 
 ## Funcionalidades
 
@@ -101,10 +131,10 @@ arrancar el servidor.
 |---|---|
 | **Usuarios** | Todos los usuarios, uno por id y sus reseñas con el álbum de cada una. |
 | **Álbumes** | Todos los álbumes, el detalle de uno por id, y sus reseñas con el usuario que escribió cada una. |
-| **Reseñas** | Todas las reseñas con el usuario que escribió cada una, de la más nueva a la más vieja (con el id como segundo criterio, para que el orden no cambie). Crear con id de usuario, id de álbum, calificación de 0 a 5, comentario y fecha de escucha; modificar y eliminar por id. |
-| **Canciones y artistas** | Todas las canciones y todos los artistas del catálogo de la app, y uno por id. |
+| **Reseñas** | Todas las reseñas con el usuario que escribió cada una, de la más nueva a la más vieja (con el id como segundo criterio, para que el orden no cambie). Crear con id de usuario, id de álbum, calificación de 0 a 5, comentario y fecha de escucha; modificar la calificación, el comentario o la fecha de escucha, y eliminar por id. |
+| **Canciones y artistas** | Todas las canciones y todos los artistas del catálogo de la app, y uno por id, con su fecha de lanzamiento, su Instagram y sus puestos en la lista de su género y en el Top Colombia. |
 | **Datos iniciales** | 5 usuarios, 8 álbumes con sus portadas, 12 reseñas, 126 canciones y 56 artistas, cargados con `count()` y `bulkCreate` solo si la tabla está vacía. Las canciones y los artistas son el mismo catálogo real de Firestore, con portadas de 1000 px y datos curiosos. Los 5 usuarios escribieron alguna y todos los álbumes, salvo *Random Access Memories*, tienen al menos una. El usuario 1 es el de la app, con las 4 reseñas de su perfil, y los ids de los álbumes coinciden con los de la app. |
-| **Errores** | `400` en JSON cuando la calificación no va de 0 a 5, `404` cuando el usuario, el álbum, la reseña, la canción o el artista no existen, y `500` cuando una consulta falla. |
+| **Errores** | `400` en JSON cuando falta la calificación, llega nula o no va de 0 a 5, o cuando el comentario pasa de 500 caracteres; `404` cuando el usuario, el álbum, la reseña, la canción o el artista no existen; y `500` cuando una consulta falla, con el error también en la consola del servidor. |
 
 ## Arquitectura
 
@@ -162,8 +192,8 @@ Initial artistas loaded
 Servidor escuchando en el puerto 3000
 ```
 
-Si la base ya tenía las tablas de antes, `sync()` solo crea las que faltan (`canciones` y `artistas`) y les
-carga sus datos.
+Si la base ya tenía las tablas de antes, `sync()` solo crea las que faltan y les carga sus datos; las que ya
+existen no reciben las columnas nuevas. En ese caso, recréalas como dice [Recrear las tablas](#recrear-las-tablas).
 
 ## Endpoints
 
@@ -198,10 +228,18 @@ va como fecha `AAAA-MM-DD`:
 }
 ```
 
-Si la calificación no va de 0 a 5, responde `400` con `{ "error": "La calificación va de 0 a 5" }`. Si el
-usuario o el álbum no existen, responde `404` con `{ "error": "Usuario no encontrado" }` o
-`{ "error": "Álbum no encontrado" }`. Eliminar responde `{ "message": "Review eliminada" }`. Las reseñas de un
-álbum y la lista de todas las reseñas traen anidado al usuario que las escribió:
+Antes de guardar se revisa el body y, si algo falla, responde `400` con el motivo:
+
+| Caso | Respuesta `400` |
+|---|---|
+| Sin `calificacion` al crear, o `calificacion: null` al crear o modificar | `{ "error": "La calificación es obligatoria" }` |
+| `calificacion` menor que 0 o mayor que 5 | `{ "error": "La calificación va de 0 a 5" }` |
+| `comentario` de más de 500 caracteres | `{ "error": "El comentario va hasta 500 caracteres" }` |
+
+Si el usuario o el álbum no existen, responde `404` con `{ "error": "Usuario no encontrado" }` o
+`{ "error": "Álbum no encontrado" }`. Al modificar, lo que no llega en el body se queda como estaba, y
+`usuarioId` y `albumId` se ignoran aunque lleguen. Eliminar responde `{ "message": "Review eliminada" }`. Las
+reseñas de un álbum y la lista de todas las reseñas traen anidado al usuario que las escribió:
 
 ```json
 [
@@ -228,12 +266,14 @@ devuelve el `POST`.
 1. `GET /usuarios`, `GET /usuarios/1` y `GET /usuarios/999` (`404`).
 2. `GET /albumes`, `GET /albumes/1` y `GET /albumes/999` (`404`).
 3. `GET /reviews`: las 12 reseñas iniciales, cada una con su usuario.
-4. `POST /reviews` con el body de arriba: crea la reseña con id `13`.
+4. `POST /reviews` con el body de arriba sin `calificacion`, para ver el `400`, y después completo: crea la
+   reseña con id `13`.
 5. `GET /albumes/6/reviews`, `GET /usuarios/1/reviews` y `GET /reviews`: la reseña aparece en los tres.
-6. `PUT /reviews/13` con `{ "calificacion": 4, "comentario": "Editada", "fechaEscucha": "2026-10-09" }`, y
-   otra vez con `{ "calificacion": 7 }` para ver el `400`.
+6. `PUT /reviews/13` con `{ "calificacion": 4, "comentario": "Editada", "fechaEscucha": "2026-10-09", "usuarioId": 2 }`:
+   cambia la reseña, pero sigue siendo del usuario `1`. Otra vez con `{ "calificacion": 7 }` para ver el `400`.
 7. `DELETE /reviews/13` (`200` con el mensaje), y otra vez para ver el `404`.
-8. `GET /canciones`, `GET /canciones/1`, `GET /artistas`, `GET /artistas/11` y `GET /artistas/999` (`404`).
+8. `GET /canciones`, `GET /canciones/1`, `GET /artistas`, `GET /artistas/11` y `GET /artistas/999` (`404`):
+   cada uno trae `fechaLanzamiento` o `instagram`, y `tendenciaColombia`.
 
 ## Consumo desde la app
 
@@ -247,16 +287,24 @@ La app Android consume la API con Retrofit desde el emulador:
 - Los `include` de las reseñas traen el usuario o el álbum anidado, que la app lee en sus DTO.
 - `GET /reviews` llena el inicio de la app, que cruza cada reseña con su álbum por el `albumId`, y
   `GET /reviews/:id` la discusión de una reseña.
-- `GET /canciones` y `GET /artistas` llenan las filas de canciones y artistas del inicio con este backend.
-- Aquí las reseñas son solo de álbumes. Las reseñas de canciones y artistas, los likes, los guardados, los
-  comentarios, las notificaciones y los seguidores solo existen en Firestore: con este backend esas funciones
-  quedan como *to-do* en la app, igual que en clase.
+- `GET /canciones` y `GET /artistas` llenan las filas de canciones y artistas del inicio con este backend. Las
+  canciones, los artistas y los álbumes traen los mismos campos que leen `CancionDto`, `ArtistaDto` y
+  `AlbumDto`, así que `tendenciaColombia`, `fechaLanzamiento` e `instagram` ya no llegan nulos por falta de
+  columna. Los 8 álbumes de este backend no están en el Top Colombia, así que su `tendenciaColombia` es `null`.
+- Aquí las reseñas son solo de álbumes. Solo existen en Firestore, y con este backend quedan como *to-do* en la
+  app, igual que en clase:
+  - las reseñas de canciones y artistas, los likes, los guardados, los comentarios, las notificaciones y los
+    seguidores;
+  - los duelos y sus votos, las mixtapes y lo que está *sonando ahora* con sus reacciones;
+  - los datos curiosos por secciones (las historias): la columna `datosCuriosos` tiene los mismos textos, pero
+    la app no la lee;
+  - el mapa: las reseñas de este backend no guardan la ubicación, así que el mapa llega vacío.
 
 ## Estructura
 
 ```text
 src/
-├── controller/   usuario · album · review · cancion · artista
+├── controller/   usuario · album · review · cancion · artista · consultas (include y orden compartidos)
 ├── database/     database.js (conexión) · initUsuarios · initAlbumes · initReviews · initCanciones · initArtistas
 ├── models/       usuario · album · review · cancion · artista · relations
 ├── routes/       usuario · album · review · cancion · artista

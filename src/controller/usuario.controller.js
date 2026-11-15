@@ -1,16 +1,19 @@
 import { Usuario } from "../models/usuario.js";
 import { Review } from "../models/review.js";
-import { Album } from "../models/album.js";
+import { incluirUsuario, incluirAlbum, ordenMasNuevas } from "./consultas.js";
 
+// Todos los usuarios
 export const getUsuarios = async (req, res) => {
   try {
     const usuarios = await Usuario.findAll();
     return res.json(usuarios);
   } catch (error) {
+    console.error("Error en getUsuarios:", error);
     return res.status(500).json({ error: error.message });
   }
 };
 
+// Un usuario por id, o 404 si no existe
 export const getUsuarioById = async (req, res) => {
   try {
     const id = req.params.id;
@@ -20,6 +23,7 @@ export const getUsuarioById = async (req, res) => {
     }
     return res.json(usuario);
   } catch (error) {
+    console.error("Error en getUsuarioById:", error);
     return res.status(500).json({ error: error.message });
   }
 };
@@ -39,26 +43,13 @@ export const getReviewsByUsuario = async (req, res) => {
       where: {
         usuarioId: id,
       },
-      include: [
-        {
-          model: Album,
-          as: "album",
-          attributes: ["id", "titulo", "artista", "portadaUrl"],
-        },
-        {
-          model: Usuario,
-          as: "usuario",
-          attributes: ["id", "nombre", "fotoUrl"],
-        },
-      ],
-      order: [
-        ["createdAt", "DESC"],
-        ["id", "DESC"],
-      ],
+      include: [incluirAlbum, incluirUsuario],
+      order: ordenMasNuevas,
     });
 
     return res.json(reviews);
   } catch (error) {
+    console.error("Error en getReviewsByUsuario:", error);
     return res.status(500).json({ error: error.message });
   }
 };

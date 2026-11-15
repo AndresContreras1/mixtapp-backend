@@ -1,16 +1,19 @@
 import { Album } from "../models/album.js";
 import { Review } from "../models/review.js";
-import { Usuario } from "../models/usuario.js";
+import { incluirUsuario, ordenMasNuevas } from "./consultas.js";
 
+// Todos los albumes
 export const getAlbumes = async (req, res) => {
   try {
     const albumes = await Album.findAll();
     return res.json(albumes);
   } catch (error) {
+    console.error("Error en getAlbumes:", error);
     return res.status(500).json({ error: error.message });
   }
 };
 
+// El detalle de un album por id, o 404 si no existe
 export const getAlbumById = async (req, res) => {
   try {
     const id = req.params.id;
@@ -20,6 +23,7 @@ export const getAlbumById = async (req, res) => {
     }
     return res.json(album);
   } catch (error) {
+    console.error("Error en getAlbumById:", error);
     return res.status(500).json({ error: error.message });
   }
 };
@@ -38,19 +42,13 @@ export const getReviewsByAlbum = async (req, res) => {
       where: {
         albumId: id,
       },
-      include: {
-        model: Usuario,
-        as: "usuario",
-        attributes: ["id", "nombre", "fotoUrl"],
-      },
-      order: [
-        ["createdAt", "DESC"],
-        ["id", "DESC"],
-      ],
+      include: incluirUsuario,
+      order: ordenMasNuevas,
     });
 
     return res.json(reviews);
   } catch (error) {
+    console.error("Error en getReviewsByAlbum:", error);
     return res.status(500).json({ error: error.message });
   }
 };
